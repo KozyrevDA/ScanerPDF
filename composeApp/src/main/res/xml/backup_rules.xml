@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Документы потенциально чувствительны — не отдаём их в облачный бэкап (п. 10 ТЗ) -->
+    <exclude domain="file" path="documents/" />
+    <exclude domain="database" path="." />
+</full-backup-content>

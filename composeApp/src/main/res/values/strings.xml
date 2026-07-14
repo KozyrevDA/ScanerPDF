@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Сканер документов AI: PDF</string>
+
+    <!-- Главный экран -->
+    <string name="home_title">Мои документы</string>
+    <string name="home_scan_button">Сканировать</string>
+    <string name="home_import_gallery">Из галереи</string>
+    <string name="home_empty_title">Пока нет документов</string>
+    <string name="home_empty_subtitle">Нажмите «Сканировать», чтобы создать первый документ</string>
+    <string name="home_pages_count">Страниц: %1$d</string>
+    <string name="home_has_ocr">Текст распознан</string>
+    <string name="action_open">Открыть</string>
+    <string name="action_rename">Переименовать</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_export">Экспортировать</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_confirm">Подтвердить</string>
+    <string name="action_retry">Повторить</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_done">Готово</string>
+    <string name="action_settings">Настройки</string>
+    <string name="action_more">Ещё</string>
+    <string name="delete_document_title">Удалить документ?</string>
+    <string name="delete_document_message">Документ «%1$s» и все его файлы будут удалены безвозвратно.</string>
+    <string name="rename_document_title">Название документа</string>
+    <string name="default_document_name">Документ</string>
+
+    <!-- Камера -->
+    <string name="camera_title">Сканирование</string>
+    <string name="camera_capture">Сделать снимок</string>
+    <string name="camera_flash_on">Включить вспышку</string>
+    <string name="camera_flash_off">Выключить вспышку</string>
+    <string name="camera_pages_badge">Страниц: %1$d</string>
+    <string name="camera_to_pages">К страницам</string>
+    <string name="camera_permission_title">Нужен доступ к камере</string>
+    <string name="camera_permission_message">Чтобы сканировать документы, разрешите приложению использовать камеру. Фотографии остаются на вашем устройстве.</string>
+    <string name="camera_permission_grant">Разрешить</string>
+    <string name="camera_permission_settings">Открыть настройки</string>
+    <string name="error_camera_open">Не удалось открыть камеру</string>
+    <string name="error_capture">Не удалось сделать снимок. Попробуйте ещё раз.</string>
+
+    <!-- Коррекция границ -->
+    <string name="crop_title">Границы документа</string>
+    <string name="crop_auto_detect">Найти автоматически</string>
+    <string name="crop_reset">Сбросить</string>
+    <string name="crop_retake">Переснять</string>
+    <string name="crop_apply">Применить</string>
+    <string name="crop_invalid_shape">Некорректная форма выделения. Углы не должны пересекаться.</string>
+    <string name="crop_not_found">Границы документа не найдены. Вы можете установить их вручную.</string>
+    <string name="crop_corner_hint">Перетащите углы, чтобы выделить документ</string>
+
+    <!-- Обработка страницы -->
+    <string name="editor_title">Обработка</string>
+    <string name="filter_original">Оригинал</string>
+    <string name="filter_color">Цветной</string>
+    <string name="filter_enhance">Улучшение</string>
+    <string name="filter_bw">Ч/Б</string>
+    <string name="filter_gray">Серый</string>
+    <string name="editor_brightness">Яркость</string>
+    <string name="editor_contrast">Контраст</string>
+    <string name="editor_rotate">Повернуть</string>
+    <string name="editor_recrop">Границы</string>
+    <string name="editor_saving">Сохранение страницы…</string>
+
+    <!-- Экран документа -->
+    <string name="document_title">Документ</string>
+    <string name="document_add_page">Добавить страницу</string>
+    <string name="document_export_pdf">Экспорт в PDF</string>
+    <string name="document_export_jpg">Экспорт страниц в JPG</string>
+    <string name="document_run_ocr">Распознать текст</string>
+    <string name="document_ai_analysis">AI-анализ</string>
+    <string name="document_page_n">Страница %1$d</string>
+    <string name="document_move_up">Выше</string>
+    <string name="document_move_down">Ниже</string>
+    <string name="document_edit_page">Редактировать страницу</string>
+    <string name="delete_page_title">Удалить страницу?</string>
+    <string name="delete_page_message">Страница будет удалена из документа.</string>
+    <string name="export_options_title">Параметры PDF</string>
+    <string name="export_page_size">Размер страницы</string>
+    <string name="export_size_auto">Автоматический</string>
+    <string name="export_size_a4">A4</string>
+    <string name="export_margins">Поля</string>
+    <string name="export_margins_none">Без полей</string>
+    <string name="export_margins_small">Небольшие</string>
+    <string name="export_quality">Качество</string>
+    <string name="export_quality_low">Низкое</string>
+    <string name="export_quality_medium">Среднее</string>
+    <string name="export_quality_high">Высокое</string>
+    <string name="export_in_progress">Создание PDF…</string>
+    <string name="error_pdf_create">Не удалось создать PDF</string>
+    <string name="error_free_pdf_limit">В бесплатной версии PDF ограничен %1$d страницами</string>
+
+    <!-- OCR -->
+    <string name="ocr_title">Распознанный текст</string>
+    <string name="ocr_page_header">Страница %1$d</string>
+    <string name="ocr_copy">Копировать</string>
+    <string name="ocr_copied">Текст скопирован</string>
+    <string name="ocr_export_txt">Экспорт в TXT</string>
+    <string name="ocr_progress">Распознавание: страница %1$d из %2$d</string>
+    <string name="ocr_cancel">Отменить распознавание</string>
+    <string name="ocr_empty">Текст на документе не распознан</string>
+    <string name="ocr_engine_unavailable">Локальный OCR-движок пока недоступен. Он появится в следующем обновлении.</string>
+
+    <!-- AI -->
+    <string name="ai_title">AI-анализ</string>
+    <string name="ai_summarize">Краткое содержание</string>
+    <string name="ai_extract">Извлечь реквизиты</string>
+    <string name="ai_contract">Проверить договор</string>
+    <string name="ai_disclaimer">AI-анализ носит информационный характер и не является юридической консультацией.</string>
+    <string name="ai_consent_title">Отправка текста на сервер</string>
+    <string name="ai_consent_message">Для AI-анализа распознанный текст документа будет отправлен на наш сервер. Изображения не отправляются. Продолжить?</string>
+    <string name="ai_consent_accept">Согласен, продолжить</string>
+    <string name="ai_key_points">Основные пункты</string>
+    <string name="ai_dates">Важные даты</string>
+    <string name="ai_amounts">Суммы</string>
+    <string name="ai_actions">Требуемые действия</string>
+    <string name="ai_risks">Потенциальные риски</string>
+    <string name="ai_important_terms">Важные условия</string>
+    <string name="ai_money_terms">Денежные условия</string>
+    <string name="ai_deadlines">Сроки и обязательства</string>
+    <string name="ai_questions">Стоит уточнить</string>
+    <string name="error_no_network">Нет подключения к интернету</string>
+    <string name="error_ai_unavailable">AI-сервис временно недоступен</string>
+    <string name="error_ai_too_large">Документ слишком большой для анализа</string>
+
+    <!-- Настройки -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_theme">Тема</string>
+    <string name="settings_theme_system">Системная</string>
+    <string name="settings_theme_light">Светлая</string>
+    <string name="settings_theme_dark">Тёмная</string>
+    <string name="settings_privacy">Политика конфиденциальности</string>
+    <string name="settings_terms">Условия использования</string>
+    <string name="settings_subscription">Управление подпиской</string>
+    <string name="settings_restore">Восстановить покупки</string>
+    <string name="settings_delete_all">Удалить все документы</string>
+    <string name="settings_delete_all_message">Все документы, страницы и распознанный текст будут удалены безвозвратно.</string>
+    <string name="settings_version">Версия %1$s</string>
+    <string name="settings_support">Связаться с поддержкой</string>
+    <string name="settings_auto_detect">Автоматическое определение границ</string>
+
+    <!-- Premium -->
+    <string name="premium_title">Premium</string>
+    <string name="premium_subtitle">Больше возможностей для работы с документами</string>
+    <string name="premium_benefit_pdf">PDF без ограничения страниц</string>
+    <string name="premium_benefit_ocr">Безлимитное распознавание текста</string>
+    <string name="premium_benefit_ai">AI-анализ документов</string>
+    <string name="premium_monthly">Месячная подписка</string>
+    <string name="premium_yearly">Годовая подписка</string>
+    <string name="premium_unavailable">Покупки будут доступны после публикации в RuStore</string>
+    <string name="error_purchase">Покупка не завершена</string>
+
+    <!-- Общие ошибки -->
+    <string name="error_generic">Что-то пошло не так. Попробуйте ещё раз.</string>
+    <string name="error_out_of_memory">Недостаточно памяти для обработки изображения</string>
+    <string name="error_document_not_found">Документ не найден</string>
+
+    <string name="privacy_policy_text">Политика конфиденциальности\n\n1. Все отсканированные изображения и распознанный текст хранятся только на вашем устройстве во внутреннем хранилище приложения.\n\n2. Приложение не отправляет документы, изображения или текст на серверы без вашего явного действия.\n\n3. При запуске AI-анализа на сервер отправляется только распознанный текст документа — после вашего отдельного согласия. Изображения не отправляются.\n\n4. Содержимое документов не записывается в системные логи и не передаётся в аналитику.\n\n5. Вы можете удалить любой документ или все данные приложения в любой момент — файлы удаляются безвозвратно.\n\n6. Аналитика (если включена) собирает только обезличенные события использования без содержимого документов.</string>
+</resources>
