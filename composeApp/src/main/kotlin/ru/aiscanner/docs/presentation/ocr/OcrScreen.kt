@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import ru.aiscanner.docs.R
 import ru.aiscanner.docs.presentation.common.toMessage
+import ru.aiscanner.docs.presentation.navigation.Routes
 import androidx.compose.runtime.rememberCoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,6 +105,13 @@ fun OcrScreen(navController: NavHostController, viewModel: OcrViewModel = koinVi
                         Modifier.padding(start = 8.dp),
                     )
                 }
+            }
+
+            OutlinedButton(
+                onClick = { navController.navigate(Routes.ai(state.documentId)) },
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+            ) {
+                Text(stringResource(R.string.ai_title))
             }
 
             LazyColumn(

@@ -59,6 +59,7 @@ import ru.aiscanner.docs.domain.usecase.ReorderPagesUseCase
 import ru.aiscanner.docs.domain.usecase.ShareDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.SummarizeDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.UpdatePageCropUseCase
+import ru.aiscanner.docs.presentation.ai.AiViewModel
 import ru.aiscanner.docs.presentation.camera.CameraViewModel
 import ru.aiscanner.docs.presentation.crop.CropViewModel
 import ru.aiscanner.docs.presentation.document.DocumentViewModel
@@ -137,6 +138,7 @@ val viewModelModule = module {
     viewModel { DocumentViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { OcrViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get()) }
+    viewModel { AiViewModel(get(), get(), get(), get(), get(), get(), get()) }
 }
 
 val appModules = listOf(coreModule, dataModule, domainModule, viewModelModule)

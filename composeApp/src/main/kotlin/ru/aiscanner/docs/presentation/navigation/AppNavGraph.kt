@@ -6,6 +6,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import ru.aiscanner.docs.presentation.ai.AiScreen
 import ru.aiscanner.docs.presentation.camera.CameraScreen
 import ru.aiscanner.docs.presentation.crop.CropScreen
 import ru.aiscanner.docs.presentation.document.DocumentScreen
@@ -26,6 +27,7 @@ object Routes {
     const val EDITOR = "editor/{pageId}"
     const val DOCUMENT = "document/{documentId}"
     const val OCR = "ocr/{documentId}"
+    const val AI = "ai/{documentId}"
     const val SETTINGS = "settings"
     const val PREMIUM = "premium"
 
@@ -36,6 +38,7 @@ object Routes {
     fun editor(pageId: String) = "editor/$pageId"
     fun document(documentId: String) = "document/$documentId"
     fun ocr(documentId: String) = "ocr/$documentId"
+    fun ai(documentId: String) = "ai/$documentId"
 }
 
 @Composable
@@ -68,6 +71,10 @@ fun AppNavGraph(navController: NavHostController) {
             route = Routes.OCR,
             arguments = listOf(navArgument("documentId") { type = NavType.StringType }),
         ) { OcrScreen(navController) }
+        composable(
+            route = Routes.AI,
+            arguments = listOf(navArgument("documentId") { type = NavType.StringType }),
+        ) { AiScreen(navController) }
         composable(Routes.SETTINGS) { SettingsScreen(navController) }
         composable(Routes.PREMIUM) { PremiumScreen(navController) }
     }

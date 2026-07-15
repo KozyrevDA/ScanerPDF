@@ -36,6 +36,7 @@ sealed interface DocumentUiEffect {
     data class OpenCamera(val documentId: String) : DocumentUiEffect
     data class OpenEditor(val pageId: String) : DocumentUiEffect
     data class OpenOcr(val documentId: String) : DocumentUiEffect
+    data class OpenAi(val documentId: String) : DocumentUiEffect
     data object OpenPremium : DocumentUiEffect
 }
 
@@ -115,6 +116,10 @@ class DocumentViewModel(
 
     fun onRunOcr() {
         viewModelScope.launch { _effects.send(DocumentUiEffect.OpenOcr(documentId)) }
+    }
+
+    fun onRunAi() {
+        viewModelScope.launch { _effects.send(DocumentUiEffect.OpenAi(documentId)) }
     }
 
     fun consumeError() { errorFlow.value = null }

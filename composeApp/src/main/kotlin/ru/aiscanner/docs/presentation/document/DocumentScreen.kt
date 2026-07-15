@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -67,6 +68,7 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
                 is DocumentUiEffect.OpenCamera -> navController.navigate(Routes.camera(effect.documentId))
                 is DocumentUiEffect.OpenEditor -> navController.navigate(Routes.editor(effect.pageId))
                 is DocumentUiEffect.OpenOcr -> navController.navigate(Routes.ocr(effect.documentId))
+                is DocumentUiEffect.OpenAi -> navController.navigate(Routes.ai(effect.documentId))
                 DocumentUiEffect.OpenPremium -> navController.navigate(Routes.PREMIUM)
             }
         }
@@ -94,6 +96,12 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
                         Icon(
                             Icons.Default.TextSnippet,
                             contentDescription = stringResource(R.string.document_run_ocr),
+                        )
+                    }
+                    IconButton(onClick = viewModel::onRunAi) {
+                        Icon(
+                            Icons.Default.AutoAwesome,
+                            contentDescription = stringResource(R.string.document_ai_analysis),
                         )
                     }
                     IconButton(onClick = { showExportDialog = true }, enabled = !state.isExporting) {
