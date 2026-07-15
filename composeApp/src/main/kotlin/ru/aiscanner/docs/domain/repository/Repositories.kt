@@ -79,3 +79,9 @@ interface SettingsRepository {
     suspend fun incrementOcrOperations()
     suspend fun incrementAiOperations()
 }
+
+/** Импорт изображения из галереи (SAF/Photo Picker) во внутреннее хранилище. */
+interface ImageImporter {
+    /** Копирует изображение по URI в директорию документа, возвращает путь к файлу. */
+    suspend fun importImage(documentId: String, uriString: String): String
+}

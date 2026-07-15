@@ -18,6 +18,7 @@ import ru.aiscanner.docs.data.analytics.Analytics
 import ru.aiscanner.docs.data.analytics.DebugAnalytics
 import ru.aiscanner.docs.data.db.AppDatabase
 import ru.aiscanner.docs.data.export.PdfExporter
+import ru.aiscanner.docs.data.files.AndroidImageImporter
 import ru.aiscanner.docs.data.files.DocumentFileStore
 import ru.aiscanner.docs.data.imageprocessing.AndroidDocumentImageProcessor
 import ru.aiscanner.docs.data.imageprocessing.DocumentCornerDetector
@@ -37,6 +38,7 @@ import ru.aiscanner.docs.domain.model.FreePlanLimits
 import ru.aiscanner.docs.domain.repository.AiRepository
 import ru.aiscanner.docs.domain.repository.DocumentRepository
 import ru.aiscanner.docs.domain.repository.ExportRepository
+import ru.aiscanner.docs.domain.repository.ImageImporter
 import ru.aiscanner.docs.domain.repository.ImageProcessingRepository
 import ru.aiscanner.docs.domain.repository.OcrRepository
 import ru.aiscanner.docs.domain.repository.SettingsRepository
@@ -52,6 +54,7 @@ import ru.aiscanner.docs.domain.usecase.ExportDocumentToPdfUseCase
 import ru.aiscanner.docs.domain.usecase.ExportPageToJpgUseCase
 import ru.aiscanner.docs.domain.usecase.ExtractDocumentDataUseCase
 import ru.aiscanner.docs.domain.usecase.GetDocumentsUseCase
+import ru.aiscanner.docs.domain.usecase.ImportImageToDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.ObserveDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.RecognizeDocumentTextUseCase
 import ru.aiscanner.docs.domain.usecase.RenameDocumentUseCase
@@ -92,6 +95,7 @@ val dataModule = module {
     single<DocumentRepository> { DocumentRepositoryImpl(get(), get(), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(androidContext()) }
     single<SubscriptionRepository> { StubSubscriptionRepository() }
+    single<ImageImporter> { AndroidImageImporter(androidContext(), get(), get()) }
 
     single<DocumentCornerDetector> { FallbackCornerDetector() }
     single<DocumentImageProcessor> { AndroidDocumentImageProcessor(get(), get()) }
@@ -123,6 +127,7 @@ val domainModule = module {
     factory { ExportDocumentToPdfUseCase(get(), get(), get(), get()) }
     factory { ExportPageToJpgUseCase(get()) }
     factory { ShareDocumentUseCase(get()) }
+    factory { ImportImageToDocumentUseCase(get(), get(), get()) }
     factory { RecognizeDocumentTextUseCase(get(), get(), get(), get()) }
     factory { AiGate(get(), get(), get()) }
     factory { SummarizeDocumentUseCase(get(), get()) }
@@ -131,11 +136,11 @@ val domainModule = module {
 }
 
 val viewModelModule = module {
-    viewModel { HomeViewModel(get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CameraViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { CropViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { PageEditorViewModel(get(), get(), get(), get()) }
-    viewModel { DocumentViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { DocumentViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { OcrViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get()) }
     viewModel { AiViewModel(get(), get(), get(), get(), get(), get(), get()) }

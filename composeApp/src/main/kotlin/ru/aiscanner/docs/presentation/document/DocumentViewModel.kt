@@ -21,6 +21,7 @@ import ru.aiscanner.docs.domain.model.DocumentWithPages
 import ru.aiscanner.docs.domain.model.PdfExportOptions
 import ru.aiscanner.docs.domain.usecase.DeletePageUseCase
 import ru.aiscanner.docs.domain.usecase.ExportDocumentToPdfUseCase
+import ru.aiscanner.docs.domain.usecase.ImportImageToDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.ObserveDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.ReorderPagesUseCase
 import ru.aiscanner.docs.domain.usecase.ShareDocumentUseCase
@@ -35,6 +36,7 @@ data class DocumentUiState(
 sealed interface DocumentUiEffect {
     data class OpenCamera(val documentId: String) : DocumentUiEffect
     data class OpenEditor(val pageId: String) : DocumentUiEffect
+    data class OpenCrop(val pageId: String) : DocumentUiEffect
     data class OpenOcr(val documentId: String) : DocumentUiEffect
     data class OpenAi(val documentId: String) : DocumentUiEffect
     data object OpenPremium : DocumentUiEffect
@@ -47,6 +49,7 @@ class DocumentViewModel(
     private val deletePage: DeletePageUseCase,
     private val exportToPdf: ExportDocumentToPdfUseCase,
     private val shareDocument: ShareDocumentUseCase,
+    private val importImage: ImportImageToDocumentUseCase,
     private val analytics: Analytics,
 ) : ViewModel() {
 
@@ -116,6 +119,15 @@ class DocumentViewModel(
 
     fun onRunOcr() {
         viewModelScope.launch { _effects.send(DocumentUiEffect.OpenOcr(documentId)) }
+    }
+
+    fun onImportFromGallery(uriString: String) {
+        viewModelScope.launch {
+            when (val result = importImage(documentId, uriString, "")) {
+                is AppResult.Success -> _effects.send(DocumentUiEffect.OpenCrop(result.value.id))
+                is AppResult.Failure -> errorFlow.value = result.error
+            }
+        }
     }
 
     fun onRunAi() {

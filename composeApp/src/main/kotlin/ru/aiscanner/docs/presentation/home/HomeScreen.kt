@@ -11,7 +11,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material.icons.filled.DocumentScanner
+import androidx.compose.material.icons.filled.Collections
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -46,6 +53,7 @@ import ru.aiscanner.docs.R
 import ru.aiscanner.docs.domain.model.Document
 import ru.aiscanner.docs.presentation.common.ConfirmDialog
 import ru.aiscanner.docs.presentation.common.EmptyState
+import ru.aiscanner.docs.presentation.common.toMessage
 import ru.aiscanner.docs.presentation.navigation.Routes
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -63,8 +71,26 @@ fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel = koin
             when (effect) {
                 is HomeUiEffect.OpenCamera -> navController.navigate(Routes.camera())
                 is HomeUiEffect.OpenDocument -> navController.navigate(Routes.document(effect.documentId))
+                is HomeUiEffect.OpenCrop -> navController.navigate(Routes.crop(effect.pageId))
+                HomeUiEffect.OpenPremium -> navController.navigate(Routes.PREMIUM)
             }
         }
+    }
+
+    val snackbarHostState = remember { SnackbarHostState() }
+    state.error?.let { error ->
+        val message = error.toMessage()
+        LaunchedEffect(error) {
+            snackbarHostState.showSnackbar(message)
+            viewModel.consumeError()
+        }
+    }
+
+    val importedName = stringResource(R.string.home_imported_name)
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        uri?.let { viewModel.onImportFromGallery(it.toString(), importedName) }
     }
 
     var deleteCandidate by remember { mutableStateOf<Document?>(null) }
@@ -84,13 +110,14 @@ fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel = koin
                 },
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Button(
                 onClick = viewModel::onScanClick,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp)
+                    .padding(start = 16.dp, end = 16.dp, top = 16.dp)
                     .height(64.dp)
                     .semantics { contentDescription = "Сканировать документ" },
             ) {
@@ -98,6 +125,24 @@ fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel = koin
                 Text(
                     stringResource(R.string.home_scan_button),
                     style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
+            OutlinedButton(
+                onClick = {
+                    galleryLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                    )
+                },
+                enabled = !state.isBusy,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .semantics { contentDescription = "Импортировать изображение из галереи" },
+            ) {
+                Icon(Icons.Default.Collections, contentDescription = null)
+                Text(
+                    stringResource(R.string.home_import_gallery),
                     modifier = Modifier.padding(start = 8.dp),
                 )
             }
@@ -119,6 +164,7 @@ fun HomeScreen(navController: NavHostController, viewModel: HomeViewModel = koin
                             document = document,
                             onClick = { viewModel.onDocumentClick(document.id) },
                             onRename = { renameCandidate = document },
+                            onShare = { viewModel.onExportAndShare(document.id) },
                             onDelete = { deleteCandidate = document },
                         )
                     }
@@ -167,6 +213,7 @@ private fun DocumentRow(
     document: Document,
     onClick: () -> Unit,
     onRename: () -> Unit,
+    onShare: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
@@ -212,6 +259,14 @@ private fun DocumentRow(
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.action_rename)) },
                     onClick = { menuOpen = false; onRename() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_share)) },
+                    onClick = { menuOpen = false; onShare() },
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.action_export)) },
+                    onClick = { menuOpen = false; onShare() },
                 )
                 DropdownMenuItem(
                     text = { Text(stringResource(R.string.action_delete)) },

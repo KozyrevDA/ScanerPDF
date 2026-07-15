@@ -11,6 +11,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.filled.AddPhotoAlternate
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -67,6 +71,7 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
             when (effect) {
                 is DocumentUiEffect.OpenCamera -> navController.navigate(Routes.camera(effect.documentId))
                 is DocumentUiEffect.OpenEditor -> navController.navigate(Routes.editor(effect.pageId))
+                is DocumentUiEffect.OpenCrop -> navController.navigate(Routes.crop(effect.pageId))
                 is DocumentUiEffect.OpenOcr -> navController.navigate(Routes.ocr(effect.documentId))
                 is DocumentUiEffect.OpenAi -> navController.navigate(Routes.ai(effect.documentId))
                 DocumentUiEffect.OpenPremium -> navController.navigate(Routes.PREMIUM)
@@ -85,6 +90,12 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
     var deletePageId by remember { mutableStateOf<String?>(null) }
     var showExportDialog by remember { mutableStateOf(false) }
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        uri?.let { viewModel.onImportFromGallery(it.toString()) }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -92,6 +103,16 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
                     Text(state.document?.document?.name ?: stringResource(R.string.document_title))
                 },
                 actions = {
+                    IconButton(onClick = {
+                        galleryLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                        )
+                    }) {
+                        Icon(
+                            Icons.Default.AddPhotoAlternate,
+                            contentDescription = stringResource(R.string.home_import_gallery),
+                        )
+                    }
                     IconButton(onClick = viewModel::onRunOcr) {
                         Icon(
                             Icons.Default.TextSnippet,
