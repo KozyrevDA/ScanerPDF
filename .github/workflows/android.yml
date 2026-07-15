@@ -1,0 +1,62 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0 platform-tools'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Clean
+        run: ./gradlew clean
+
+      - name: Unit tests
+        run: ./gradlew test
+
+      - name: Detekt
+        run: ./gradlew :composeApp:detekt
+
+      - name: Assemble debug APK
+        run: ./gradlew :composeApp:assembleDebug
+
+      - name: APK info
+        run: |
+          APK=composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          ls -la "$APK"
+          sha256sum "$APK"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: composeApp-debug-apk
+          path: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          if-no-files-found: error
+
+      - name: Upload test and detekt reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            composeApp/build/reports/
+          if-no-files-found: ignore
