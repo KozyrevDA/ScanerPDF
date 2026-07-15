@@ -4,6 +4,7 @@ import kotlinx.coroutines.CancellationException
 import ru.aiscanner.docs.core.AppError
 import ru.aiscanner.docs.core.AppResult
 import ru.aiscanner.docs.data.ai.AiDocumentService
+import ru.aiscanner.docs.data.ai.AiNotConfiguredException
 import ru.aiscanner.docs.data.ai.DocumentTooLargeException
 import ru.aiscanner.docs.domain.model.AiSummary
 import ru.aiscanner.docs.domain.model.ContractAnalysis
@@ -30,6 +31,8 @@ class AiRepositoryImpl(private val service: AiDocumentService) : AiRepository {
         AppResult.Success(block())
     } catch (e: CancellationException) {
         throw e
+    } catch (e: AiNotConfiguredException) {
+        AppResult.Failure(AppError.AiNotConfigured)
     } catch (e: DocumentTooLargeException) {
         AppResult.Failure(AppError.DocumentTooLarge)
     } catch (e: IOException) {

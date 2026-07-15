@@ -20,6 +20,7 @@ sealed interface AppError {
     data object OcrEngineUnavailable : AppError
     data object NoNetwork : AppError
     data object AiUnavailable : AppError
+    data object AiNotConfigured : AppError
     data object AiConsentRequired : AppError
     data object DocumentTooLarge : AppError
     data object DocumentNotFound : AppError

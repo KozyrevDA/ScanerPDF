@@ -13,6 +13,8 @@ import ru.aiscanner.docs.core.DefaultDispatchersProvider
 import ru.aiscanner.docs.core.DispatchersProvider
 import ru.aiscanner.docs.data.ai.AiDocumentService
 import ru.aiscanner.docs.data.ai.AiResponseParser
+import ru.aiscanner.docs.data.ai.DisabledAiDocumentService
+import ru.aiscanner.docs.data.ai.KtorAiDocumentService
 import ru.aiscanner.docs.data.ai.MockAiDocumentService
 import ru.aiscanner.docs.data.analytics.Analytics
 import ru.aiscanner.docs.data.analytics.DebugAnalytics
@@ -104,9 +106,17 @@ val dataModule = module {
     single<OcrEngine> { TesseractOcrEngine(androidContext(), get()) }
     single<OcrRepository> { OcrRepositoryImpl(get(), get(), get()) }
 
-    // Для разработки используется mock (п. 9 ТЗ). Боевой клиент:
-    // KtorAiDocumentService(get(), BuildConfig.AI_BASE_URL)
-    single<AiDocumentService> { MockAiDocumentService() }
+    // debug: mock разрешён только явным флагом USE_MOCK_AI;
+    // release: только реальный Ktor-клиент к backend-прокси;
+    // без AI_BASE_URL AI-функции отключены с понятным сообщением.
+    single<AiDocumentService> {
+        val baseUrl = BuildConfig.AI_BASE_URL
+        when {
+            BuildConfig.DEBUG && BuildConfig.USE_MOCK_AI -> MockAiDocumentService()
+            baseUrl.isNotBlank() -> KtorAiDocumentService(get(), baseUrl)
+            else -> DisabledAiDocumentService()
+        }
+    }
     single<AiRepository> { AiRepositoryImpl(get()) }
 
     single { PdfExporter() }

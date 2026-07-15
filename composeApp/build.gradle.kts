@@ -23,12 +23,23 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Базовый URL backend-прокси AI. API-ключи провайдера в APK не хранятся (п. 9 ТЗ).
-        buildConfigField("String", "AI_BASE_URL", "\"https://api.example-proxy.dev\"")
+        // Базовый URL backend-прокси AI задаётся снаружи (Gradle property `aiBaseUrl`
+        // или переменная окружения AI_BASE_URL). Пустое значение = AI отключён.
+        // API-ключи провайдера в APK не хранятся (п. 9 ТЗ).
+        val aiBaseUrl: String = (project.findProperty("aiBaseUrl") as String?)
+            ?: System.getenv("AI_BASE_URL")
+            ?: ""
+        buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
     }
 
     buildTypes {
+        debug {
+            // Mock AI разрешён только в debug и только явным флагом
+            val useMockAi = (project.findProperty("useMockAi") as String?) ?: "true"
+            buildConfigField("boolean", "USE_MOCK_AI", useMockAi)
+        }
         release {
+            buildConfigField("boolean", "USE_MOCK_AI", "false")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
