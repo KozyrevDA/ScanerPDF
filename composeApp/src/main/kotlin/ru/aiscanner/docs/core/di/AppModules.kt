@@ -25,7 +25,7 @@ import ru.aiscanner.docs.data.imageprocessing.DocumentCornerDetector
 import ru.aiscanner.docs.data.imageprocessing.DocumentImageProcessor
 import ru.aiscanner.docs.data.imageprocessing.OpenCvDocumentCornerDetector
 import ru.aiscanner.docs.data.ocr.OcrEngine
-import ru.aiscanner.docs.data.ocr.StubOcrEngine
+import ru.aiscanner.docs.data.ocr.TesseractOcrEngine
 import ru.aiscanner.docs.data.repository.AiRepositoryImpl
 import ru.aiscanner.docs.data.repository.DocumentRepositoryImpl
 import ru.aiscanner.docs.data.repository.ExportRepositoryImpl
@@ -101,7 +101,7 @@ val dataModule = module {
     single<DocumentImageProcessor> { AndroidDocumentImageProcessor(get(), get()) }
     single<ImageProcessingRepository> { ImageProcessingRepositoryImpl(get(), get(), get(), get()) }
 
-    single<OcrEngine> { StubOcrEngine() }
+    single<OcrEngine> { TesseractOcrEngine(androidContext(), get()) }
     single<OcrRepository> { OcrRepositoryImpl(get(), get(), get()) }
 
     // Для разработки используется mock (п. 9 ТЗ). Боевой клиент:
