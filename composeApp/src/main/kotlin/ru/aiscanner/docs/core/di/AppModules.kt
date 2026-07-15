@@ -137,7 +137,7 @@ val domainModule = module {
 
 val viewModelModule = module {
     viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { CameraViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { CameraViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CropViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { PageEditorViewModel(get(), get(), get(), get()) }
     viewModel { DocumentViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }

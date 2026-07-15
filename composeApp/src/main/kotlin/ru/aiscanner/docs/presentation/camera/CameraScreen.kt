@@ -3,16 +3,20 @@ package ru.aiscanner.docs.presentation.camera
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Matrix
 import android.net.Uri
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,12 +34,14 @@ import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,7 +50,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -62,6 +71,8 @@ import ru.aiscanner.docs.presentation.common.EmptyState
 import ru.aiscanner.docs.presentation.common.toMessage
 import ru.aiscanner.docs.presentation.navigation.Routes
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 @Composable
 fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = koinViewModel()) {
@@ -114,12 +125,47 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    val analysisExecutor: ExecutorService = remember { Executors.newSingleThreadExecutor() }
+    DisposableEffect(Unit) { onDispose { analysisExecutor.shutdown() } }
+
     val imageCapture = remember {
         ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
             .build()
     }
-    var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+    val imageAnalysis = remember {
+        ImageAnalysis.Builder()
+            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+            .build()
+    }
+    var camera by remember { mutableStateOf<Camera?>(null) }
+
+    // Анализатор кадров: троттлинг в VM, ImageProxy закрывается всегда
+    LaunchedEffect(Unit) {
+        imageAnalysis.setAnalyzer(analysisExecutor) { proxy ->
+            try {
+                if (viewModel.shouldAnalyzeFrame()) {
+                    val rotation = proxy.imageInfo.rotationDegrees
+                    val raw = proxy.toBitmap()
+                    val frame = if (rotation != 0) {
+                        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                        val rotated = android.graphics.Bitmap.createBitmap(
+                            raw, 0, 0, raw.width, raw.height, matrix, true,
+                        )
+                        raw.recycle()
+                        rotated
+                    } else {
+                        raw
+                    }
+                    viewModel.onAnalysisFrame(frame)
+                }
+            } catch (e: Exception) {
+                // Кадр анализа не критичен: пропускаем без падения
+            } finally {
+                proxy.close()
+            }
+        }
+    }
 
     LaunchedEffect(state.torchEnabled) {
         camera?.cameraControl?.enableTorch(state.torchEnabled)
@@ -137,6 +183,7 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
         AndroidView(
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
+                previewView.scaleType = PreviewView.ScaleType.FILL_CENTER
                 val providerFuture = ProcessCameraProvider.getInstance(ctx)
                 providerFuture.addListener({
                     try {
@@ -150,6 +197,7 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
                             CameraSelector.DEFAULT_BACK_CAMERA,
                             preview,
                             imageCapture,
+                            imageAnalysis,
                         )
                     } catch (e: Exception) {
                         viewModel.onCameraError()
@@ -160,12 +208,35 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
             modifier = Modifier.fillMaxSize(),
         )
 
+        // Живой контур найденного документа поверх превью (FILL_CENTER-проекция)
+        val corners = state.liveCorners
+        if (corners != null && state.analyzedWidth > 0 && state.analyzedHeight > 0) {
+            Canvas(Modifier.fillMaxSize()) {
+                val iw = state.analyzedWidth.toFloat()
+                val ih = state.analyzedHeight.toFloat()
+                val scale = maxOf(size.width / iw, size.height / ih)
+                val dx = (size.width - iw * scale) / 2f
+                val dy = (size.height - ih * scale) / 2f
+                val points = corners.asList().map {
+                    Offset(it.x * iw * scale + dx, it.y * ih * scale + dy)
+                }
+                val path = Path().apply {
+                    moveTo(points[0].x, points[0].y)
+                    for (i in 1 until points.size) lineTo(points[i].x, points[i].y)
+                    close()
+                }
+                drawPath(path, Color(0xFF4CD964).copy(alpha = 0.18f))
+                drawPath(path, Color(0xFF4CD964), style = Stroke(width = 3.dp.toPx()))
+            }
+        }
+
         Row(
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .fillMaxWidth()
                 .padding(16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = viewModel::toggleTorch) {
                 Icon(
@@ -176,8 +247,31 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
                     tint = Color.White,
                 )
             }
+            FilterChip(
+                selected = state.autoDetectEnabled,
+                onClick = viewModel::toggleAutoDetect,
+                label = {
+                    Text(
+                        stringResource(
+                            if (state.autoDetectEnabled) R.string.camera_auto_mode
+                            else R.string.camera_manual_mode,
+                        ),
+                    )
+                },
+            )
             if (state.pageCount > 0) {
                 Badge { Text(stringResource(R.string.camera_pages_badge, state.pageCount)) }
+            }
+        }
+
+        if (state.documentFound) {
+            Badge(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 72.dp),
+                containerColor = Color(0xFF2E7D32),
+            ) {
+                Text(stringResource(R.string.camera_document_found), Modifier.padding(4.dp))
             }
         }
 
@@ -191,6 +285,8 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
         ) {
             FilledIconButton(
                 onClick = {
+                    // Защита от повторных параллельных снимков (быстрые нажатия)
+                    if (!viewModel.tryBeginCapture()) return@FilledIconButton
                     scope.launch {
                         val path = viewModel.prepareCaptureFilePath()
                         val options = ImageCapture.OutputFileOptions.Builder(File(path)).build()
