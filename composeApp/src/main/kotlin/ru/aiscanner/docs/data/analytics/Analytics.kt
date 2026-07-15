@@ -7,7 +7,7 @@ import android.util.Log
  * В аналитику не передаются: содержимое OCR, названия документов, реквизиты,
  * изображения, персональные данные — события содержат только имя.
  */
-interface Analytics {
+fun interface Analytics {
     fun logEvent(event: AnalyticsEvent)
 }
 

@@ -142,7 +142,7 @@ fun CameraScreen(navController: NavHostController, viewModel: CameraViewModel = 
                     try {
                         val provider = providerFuture.get()
                         val preview = Preview.Builder().build().also {
-                            it.surfaceProvider = previewView.surfaceProvider
+                            it.setSurfaceProvider(previewView.surfaceProvider)
                         }
                         provider.unbindAll()
                         camera = provider.bindToLifecycle(
