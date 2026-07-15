@@ -14,10 +14,19 @@ import org.junit.Before
 import org.junit.Test
 import ru.aiscanner.docs.data.analytics.Analytics
 import ru.aiscanner.docs.data.analytics.AnalyticsEvent
+import ru.aiscanner.docs.domain.logic.FreePlanLimiter
+import ru.aiscanner.docs.domain.model.FreePlanLimits
 import ru.aiscanner.docs.domain.usecase.DeleteDocumentUseCase
+import ru.aiscanner.docs.domain.usecase.ExportDocumentToPdfUseCase
 import ru.aiscanner.docs.domain.usecase.GetDocumentsUseCase
+import ru.aiscanner.docs.domain.usecase.ImportImageToDocumentUseCase
 import ru.aiscanner.docs.domain.usecase.RenameDocumentUseCase
+import ru.aiscanner.docs.domain.usecase.ShareDocumentUseCase
+import ru.aiscanner.docs.data.repository.StubSubscriptionRepository
 import ru.aiscanner.docs.fakes.FakeDocumentRepository
+import ru.aiscanner.docs.fakes.FakeExportRepository
+import ru.aiscanner.docs.fakes.FakeImageImporter
+import ru.aiscanner.docs.fakes.FakeImageProcessingRepository
 import ru.aiscanner.docs.presentation.home.HomeUiEffect
 import ru.aiscanner.docs.presentation.home.HomeViewModel
 
@@ -29,10 +38,20 @@ class HomeViewModelTest {
     private val analyticsEvents = mutableListOf<AnalyticsEvent>()
     private val analytics = Analytics { event -> analyticsEvents.add(event) }
 
+    private val exportRepo = FakeExportRepository()
+
     private fun createViewModel() = HomeViewModel(
         getDocuments = GetDocumentsUseCase(repo),
         renameDocument = RenameDocumentUseCase(repo),
         deleteDocument = DeleteDocumentUseCase(repo),
+        exportToPdf = ExportDocumentToPdfUseCase(
+            documents = repo,
+            export = exportRepo,
+            subscriptions = StubSubscriptionRepository(),
+            limiter = FreePlanLimiter(FreePlanLimits.DEFAULT),
+        ),
+        shareDocument = ShareDocumentUseCase(exportRepo),
+        importImage = ImportImageToDocumentUseCase(repo, FakeImageImporter(), FakeImageProcessingRepository()),
         analytics = analytics,
     )
 
@@ -103,6 +122,37 @@ class HomeViewModelTest {
         dispatcher.scheduler.advanceUntilIdle()
 
         assertEquals("Новое имя", viewModel.state.value.documents.first().name)
+        collectJob.cancel()
+    }
+
+    @Test
+    fun `export and share exports pdf and opens sharesheet`() = runTest(dispatcher) {
+        val doc = repo.createDocument("Для экспорта")
+        repo.addPage(doc.id, "/tmp/1.jpg", null)
+        val viewModel = createViewModel()
+
+        viewModel.onExportAndShare(doc.id)
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(doc.id), exportRepo.exportedDocuments)
+        assertEquals(1, exportRepo.sharedFiles.size)
+        assertTrue(analyticsEvents.contains(AnalyticsEvent.PDF_EXPORT_COMPLETED))
+    }
+
+    @Test
+    fun `gallery import creates document and requests crop screen`() = runTest(dispatcher) {
+        val viewModel = createViewModel()
+        val collected = mutableListOf<HomeUiEffect>()
+        val job = launch { viewModel.effects.collect { collected.add(it) } }
+
+        viewModel.onImportFromGallery("content://media/42", "Импорт")
+        dispatcher.scheduler.advanceUntilIdle()
+        job.cancel()
+
+        val collectJob = launch { viewModel.state.collect {} }
+        dispatcher.scheduler.advanceUntilIdle()
+        assertEquals(1, viewModel.state.value.documents.size)
+        assertTrue(collected.any { it is HomeUiEffect.OpenCrop })
         collectJob.cancel()
     }
 }
