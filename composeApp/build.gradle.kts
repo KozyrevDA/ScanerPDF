@@ -83,6 +83,12 @@ dependencies {
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
 
+    implementation(libs.opencv)
+    implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.splashscreen)
+    implementation(libs.tesseract4android)
+    implementation(libs.rustore.billing)
+
     implementation(libs.coil.compose)
     implementation(libs.coroutines.android)
     implementation(libs.serialization.json)

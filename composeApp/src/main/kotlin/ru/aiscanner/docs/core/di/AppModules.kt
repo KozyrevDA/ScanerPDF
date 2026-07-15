@@ -23,7 +23,7 @@ import ru.aiscanner.docs.data.files.DocumentFileStore
 import ru.aiscanner.docs.data.imageprocessing.AndroidDocumentImageProcessor
 import ru.aiscanner.docs.data.imageprocessing.DocumentCornerDetector
 import ru.aiscanner.docs.data.imageprocessing.DocumentImageProcessor
-import ru.aiscanner.docs.data.imageprocessing.FallbackCornerDetector
+import ru.aiscanner.docs.data.imageprocessing.OpenCvDocumentCornerDetector
 import ru.aiscanner.docs.data.ocr.OcrEngine
 import ru.aiscanner.docs.data.ocr.StubOcrEngine
 import ru.aiscanner.docs.data.repository.AiRepositoryImpl
@@ -97,7 +97,7 @@ val dataModule = module {
     single<SubscriptionRepository> { StubSubscriptionRepository() }
     single<ImageImporter> { AndroidImageImporter(androidContext(), get(), get()) }
 
-    single<DocumentCornerDetector> { FallbackCornerDetector() }
+    single<DocumentCornerDetector> { OpenCvDocumentCornerDetector(get()) }
     single<DocumentImageProcessor> { AndroidDocumentImageProcessor(get(), get()) }
     single<ImageProcessingRepository> { ImageProcessingRepositoryImpl(get(), get(), get(), get()) }
 

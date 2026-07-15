@@ -36,4 +36,7 @@ interface DocumentImageProcessor {
  */
 interface DocumentCornerDetector {
     suspend fun detect(image: SourceImage): CornerDetectionResult
+
+    /** Детекция по уже загруженному кадру (живой контур на камере). */
+    suspend fun detectInBitmap(bitmap: Bitmap): CornerDetectionResult
 }

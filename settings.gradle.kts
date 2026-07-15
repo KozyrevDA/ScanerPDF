@@ -16,8 +16,7 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        // RuStore Billing SDK (Этап 8):
-        // maven("https://artifactory-external.vkpartner.ru/artifactory/maven")
+        maven("https://artifactory-external.vkpartner.ru/artifactory/maven")
     }
 }
 rootProject.name = "ScannerAI"

@@ -9,10 +9,13 @@ import ru.aiscanner.docs.domain.model.CropCorners
  * пользователь корректирует вручную (п. 6 ТЗ).
  */
 class FallbackCornerDetector : DocumentCornerDetector {
-    override suspend fun detect(image: SourceImage): CornerDetectionResult =
-        CornerDetectionResult(
-            corners = CropCorners.withInset(),
-            detected = false,
-            confidence = 0f,
-        )
+    override suspend fun detect(image: SourceImage): CornerDetectionResult = result()
+
+    override suspend fun detectInBitmap(bitmap: android.graphics.Bitmap): CornerDetectionResult = result()
+
+    private fun result() = CornerDetectionResult(
+        corners = CropCorners.withInset(),
+        detected = false,
+        confidence = 0f,
+    )
 }
