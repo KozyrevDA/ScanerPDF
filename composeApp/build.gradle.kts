@@ -30,6 +30,21 @@ android {
             ?: System.getenv("AI_BASE_URL")
             ?: ""
         buildConfigField("String", "AI_BASE_URL", "\"$aiBaseUrl\"")
+
+        // RuStore Billing: ID приложения в консоли RuStore и ID продуктов (см. README)
+        val rustoreConsoleAppId = (project.findProperty("rustoreConsoleAppId") as String?)
+            ?: System.getenv("RUSTORE_CONSOLE_APP_ID") ?: ""
+        buildConfigField("String", "RUSTORE_CONSOLE_APP_ID", "\"$rustoreConsoleAppId\"")
+        buildConfigField(
+            "String",
+            "RUSTORE_MONTHLY_ID",
+            "\"${(project.findProperty("rustoreMonthlyId") as String?) ?: "premium_monthly"}\"",
+        )
+        buildConfigField(
+            "String",
+            "RUSTORE_YEARLY_ID",
+            "\"${(project.findProperty("rustoreYearlyId") as String?) ?: "premium_yearly"}\"",
+        )
     }
 
     buildTypes {

@@ -1,5 +1,6 @@
 package ru.aiscanner.docs
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -8,8 +9,18 @@ import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.rememberNavController
 import org.koin.androidx.compose.koinViewModel
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import ru.aiscanner.docs.data.analytics.Analytics
-import ru.aiscanner.docs.data.analytics.AnalyticsEvent
+import ru.aiscanner.docs.data.billing.BillingDeeplinkHandler
+import ru.aiscanner.docs.domain.repository.SubscriptionRepository
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
+import ru.aiscanner.docs.data.analytics.Analytics
+import ru.aiscanner.docs.data.billing.BillingDeeplinkHandler
+import ru.aiscanner.docs.domain.repository.SubscriptionRepositoryEvent
 import ru.aiscanner.docs.presentation.navigation.AppNavGraph
 import ru.aiscanner.docs.presentation.settings.SettingsViewModel
 import ru.aiscanner.docs.presentation.theme.ScannerTheme
@@ -18,11 +29,18 @@ import org.koin.android.ext.android.inject
 class MainActivity : ComponentActivity() {
 
     private val analytics: Analytics by inject()
+    private val subscriptions: SubscriptionRepository by inject()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (savedInstanceState == null) analytics.logEvent(AnalyticsEvent.APP_OPENED)
+        if (savedInstanceState == null) {
+            analytics.logEvent(AnalyticsEvent.APP_OPENED)
+            // Проверка ранее купленной подписки при запуске (п. 11 ТЗ)
+            lifecycleScope.launch { runCatching { subscriptions.refreshSubscriptionStatus() } }
+        }
+        (subscriptions as? BillingDeeplinkHandler)?.onNewIntent(intent)
         setContent {
             val settingsViewModel: SettingsViewModel = koinViewModel()
             val settings by settingsViewModel.settings.collectAsStateWithLifecycle()
@@ -31,5 +49,10 @@ class MainActivity : ComponentActivity() {
                 AppNavGraph(navController)
             }
         }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        (subscriptions as? BillingDeeplinkHandler)?.onNewIntent(intent)
     }
 }

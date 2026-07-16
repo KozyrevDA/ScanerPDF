@@ -16,6 +16,8 @@ import ru.aiscanner.docs.data.ai.AiResponseParser
 import ru.aiscanner.docs.data.ai.DisabledAiDocumentService
 import ru.aiscanner.docs.data.ai.KtorAiDocumentService
 import ru.aiscanner.docs.data.ai.MockAiDocumentService
+import ru.aiscanner.docs.data.billing.RuStoreSubscriptionRepository
+import ru.rustore.sdk.billingclient.RuStoreBillingClientFactory
 import ru.aiscanner.docs.data.analytics.Analytics
 import ru.aiscanner.docs.data.analytics.DebugAnalytics
 import ru.aiscanner.docs.data.db.AppDatabase
@@ -71,6 +73,7 @@ import ru.aiscanner.docs.presentation.document.DocumentViewModel
 import ru.aiscanner.docs.presentation.editor.PageEditorViewModel
 import ru.aiscanner.docs.presentation.home.HomeViewModel
 import ru.aiscanner.docs.presentation.ocr.OcrViewModel
+import ru.aiscanner.docs.presentation.premium.PremiumViewModel
 import ru.aiscanner.docs.presentation.settings.SettingsViewModel
 
 val coreModule = module {
@@ -96,7 +99,23 @@ val dataModule = module {
     single { DocumentFileStore(androidContext()) }
     single<DocumentRepository> { DocumentRepositoryImpl(get(), get(), get()) }
     single<SettingsRepository> { SettingsRepositoryImpl(androidContext()) }
-    single<SubscriptionRepository> { StubSubscriptionRepository() }
+    // debug: заглушка без RuStore; release (production): только RuStore Billing
+    single<SubscriptionRepository> {
+        if (BuildConfig.DEBUG) {
+            StubSubscriptionRepository()
+        } else {
+            val client = RuStoreBillingClientFactory.create(
+                context = androidContext(),
+                consoleApplicationId = BuildConfig.RUSTORE_CONSOLE_APP_ID,
+                deeplinkScheme = "scannerai",
+            )
+            RuStoreSubscriptionRepository(
+                client = client,
+                monthlyProductId = BuildConfig.RUSTORE_MONTHLY_ID,
+                yearlyProductId = BuildConfig.RUSTORE_YEARLY_ID,
+            )
+        }
+    }
     single<ImageImporter> { AndroidImageImporter(androidContext(), get(), get()) }
 
     single<DocumentCornerDetector> { OpenCvDocumentCornerDetector(get()) }
@@ -154,6 +173,7 @@ val viewModelModule = module {
     viewModel { OcrViewModel(get(), get(), get(), get(), get(), get()) }
     viewModel { SettingsViewModel(get(), get()) }
     viewModel { AiViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { PremiumViewModel(get(), get()) }
 }
 
 val appModules = listOf(coreModule, dataModule, domainModule, viewModelModule)
