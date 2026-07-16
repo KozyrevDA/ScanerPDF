@@ -17,6 +17,9 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven("https://artifactory-external.vkpartner.ru/artifactory/maven")
+        maven("https://jitpack.io") {
+            content { includeGroupByRegex("cz\\.adaptech.*") }
+        }
     }
 }
 rootProject.name = "ScannerAI"
