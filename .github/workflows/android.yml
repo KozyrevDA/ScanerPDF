@@ -98,3 +98,166 @@ jobs:
           path: |
             composeApp/build/reports/
           if-no-files-found: ignore
+
+  instrumented-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # target: default = AOSP-образ БЕЗ Google Play Services —
+      # инструментальные тесты подтверждают работу без GMS
+      - name: Run instrumented tests on GMS-free emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          arch: x86_64
+          target: default
+          disable-animations: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: ./gradlew :composeApp:connectedDebugAndroidTest 2>&1 | tee step-connected.log
+
+      - name: Publish failure log as commit comment
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LOG=$(grep -hE "^e: |error:|FAILED|Caused by|What went wrong|Tests on|> Task .* FAILED" step-*.log 2>/dev/null | head -c 40000 || true)
+          TAIL=$(cat step-*.log 2>/dev/null | tail -c 20000); LOG="$LOG"$'\n'"--- tail ---"$'\n'"$TAIL"
+          printf 'INSTRUMENTED FAILURE (run %s):\n' "${{ github.run_id }}" > body.txt
+          printf '```\n%s\n```\n' "$LOG" >> body.txt
+          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d @payload.json > /dev/null
+
+      - name: Publish success summary
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SUMMARY=$(grep -hE "Tests on|BUILD SUCCESSFUL" step-connected.log | head -10)
+          printf 'INSTRUMENTED TESTS PASSED on GMS-free emulator (run %s):\n' "${{ github.run_id }}" > body.txt
+          printf '```\n%s\n```\n' "$SUMMARY" >> body.txt
+          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d @payload.json > /dev/null
+
+      - name: Upload instrumented test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidTest-reports
+          path: composeApp/build/reports/androidTests/
+          if-no-files-found: ignore
+
+  release-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+      RUSTORE_CONSOLE_APP_ID: ${{ secrets.RUSTORE_CONSOLE_APP_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platforms;android-35 build-tools;35.0.0 platform-tools'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Decode keystore from secrets (if configured)
+        shell: bash
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+            echo "Keystore configured: release will be SIGNED"
+          else
+            echo "No keystore secrets: release will be UNSIGNED"
+          fi
+
+      - name: Assemble release APK and AAB
+        shell: bash
+        run: ./gradlew :composeApp:assembleRelease :composeApp:bundleRelease 2>&1 | tee step-release.log
+
+      - name: Publish failure log as commit comment
+        if: failure()
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LOG=$(grep -hE "^e: |error:|FAILED|Caused by|What went wrong|Missing class|R8" step-*.log 2>/dev/null | head -c 40000 || true)
+          TAIL=$(cat step-*.log 2>/dev/null | tail -c 20000); LOG="$LOG"$'\n'"--- tail ---"$'\n'"$TAIL"
+          printf 'RELEASE FAILURE (run %s):\n' "${{ github.run_id }}" > body.txt
+          printf '```\n%s\n```\n' "$LOG" >> body.txt
+          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d @payload.json > /dev/null
+
+      - name: Publish release artifacts info
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            printf 'RELEASE BUILD OK (run %s):\n```\n' "${{ github.run_id }}"
+            for f in composeApp/build/outputs/apk/release/*.apk composeApp/build/outputs/bundle/release/*.aab; do
+              [ -f "$f" ] && printf '%s\n  SHA-256: %s\n  Size: %s bytes\n' "$f" "$(sha256sum "$f" | cut -d' ' -f1)" "$(stat -c%s "$f")"
+            done
+            printf '```\n'
+          } > body.txt
+          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d @payload.json > /dev/null
+
+      - name: Upload release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: composeApp-release-apk
+          path: composeApp/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+
+      - name: Upload release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: composeApp-release-aab
+          path: composeApp/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
