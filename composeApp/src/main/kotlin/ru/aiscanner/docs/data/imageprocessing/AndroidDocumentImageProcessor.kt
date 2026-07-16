@@ -7,6 +7,11 @@ import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
 import kotlinx.coroutines.withContext
+import org.opencv.android.Utils
+import org.opencv.core.Core
+import org.opencv.core.Mat
+import org.opencv.core.Size as CvSize
+import org.opencv.imgproc.Imgproc
 import ru.aiscanner.docs.core.DispatchersProvider
 import ru.aiscanner.docs.domain.model.CornerDetectionResult
 import ru.aiscanner.docs.domain.model.CropCorners
@@ -77,13 +82,83 @@ class AndroidDocumentImageProcessor(
         brightness: Float,
         contrast: Float,
     ): Bitmap = withContext(dispatchers.default) {
-        val matrix = buildColorMatrix(filter, brightness, contrast)
-        val result = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+        // Ч/Б и «Улучшение» рендерятся через OpenCV: выравнивание неравномерного
+        // освещения (деление на размытый фон) и adaptive threshold дают читаемый
+        // мелкий текст и убирают тени. Живое превью в UI остаётся на ColorMatrix.
+        val base = when (filter) {
+            DocumentFilter.BLACK_WHITE -> openCvBlackWhite(bitmap)
+            DocumentFilter.ENHANCE -> openCvIlluminationNormalized(bitmap)
+            else -> bitmap
+        }
+        val matrix = buildColorMatrix(
+            if (filter == DocumentFilter.BLACK_WHITE) DocumentFilter.ORIGINAL else filter,
+            brightness,
+            contrast,
+        )
+        val result = Bitmap.createBitmap(base.width, base.height, Bitmap.Config.ARGB_8888)
         val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
             colorFilter = ColorMatrixColorFilter(matrix)
         }
-        Canvas(result).drawBitmap(bitmap, 0f, 0f, paint)
+        Canvas(result).drawBitmap(base, 0f, 0f, paint)
+        if (base != bitmap) base.recycle()
         result
+    }
+
+    /** Выравнивание освещения: gray / GaussianBlur(gray) — убирает тени. */
+    private fun openCvIlluminationNormalized(bitmap: Bitmap): Bitmap {
+        val src = Mat()
+        val gray = Mat()
+        val background = Mat()
+        val normalized = Mat()
+        try {
+            Utils.bitmapToMat(bitmap, src)
+            Imgproc.cvtColor(src, gray, Imgproc.COLOR_RGBA2GRAY)
+            Imgproc.GaussianBlur(gray, background, CvSize(0.0, 0.0), 25.0)
+            Core.divide(gray, background, normalized, 255.0)
+            Imgproc.cvtColor(normalized, src, Imgproc.COLOR_GRAY2RGBA)
+            val out = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(src, out)
+            return out
+        } finally {
+            src.release()
+            gray.release()
+            background.release()
+            normalized.release()
+        }
+    }
+
+    /** Ч/Б документ: выравнивание освещения + adaptive threshold. */
+    private fun openCvBlackWhite(bitmap: Bitmap): Bitmap {
+        val src = Mat()
+        val gray = Mat()
+        val background = Mat()
+        val normalized = Mat()
+        val binary = Mat()
+        try {
+            Utils.bitmapToMat(bitmap, src)
+            Imgproc.cvtColor(src, gray, Imgproc.COLOR_RGBA2GRAY)
+            Imgproc.GaussianBlur(gray, background, CvSize(0.0, 0.0), 25.0)
+            Core.divide(gray, background, normalized, 255.0)
+            Imgproc.adaptiveThreshold(
+                normalized,
+                binary,
+                255.0,
+                Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                Imgproc.THRESH_BINARY,
+                ADAPTIVE_BLOCK_SIZE,
+                ADAPTIVE_C,
+            )
+            Imgproc.cvtColor(binary, src, Imgproc.COLOR_GRAY2RGBA)
+            val out = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
+            Utils.matToBitmap(src, out)
+            return out
+        } finally {
+            src.release()
+            gray.release()
+            background.release()
+            normalized.release()
+            binary.release()
+        }
     }
 
     override suspend fun rotate(bitmap: Bitmap, degrees: Int): Bitmap =
@@ -107,7 +182,9 @@ class AndroidDocumentImageProcessor(
         }
 
     companion object {
-        const val MAX_PROCESSING_DIMENSION = 3200
+        const val MAX_PROCESSING_DIMENSION = 4000
+        const val ADAPTIVE_BLOCK_SIZE = 31
+        const val ADAPTIVE_C = 15.0
 
         /** Матрица цвета для фильтра + яркости (-1..1) + контраста (0.25..3). */
         fun buildColorMatrix(filter: DocumentFilter, brightness: Float, contrast: Float): ColorMatrix {

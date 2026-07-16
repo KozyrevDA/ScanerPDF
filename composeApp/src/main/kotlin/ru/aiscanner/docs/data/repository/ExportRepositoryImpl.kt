@@ -57,7 +57,7 @@ class ExportRepositoryImpl(
                     if (page.processedPath != null) {
                         File(source).copyTo(outFile, overwrite = true)
                     } else {
-                        val bitmap = BitmapLoader.decodeSampled(source, 2400)
+                        val bitmap = BitmapLoader.decodeSampled(source, 3200)
                         try {
                             files.writeAtomically(outFile) { tmp ->
                                 FileOutputStream(tmp).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 92, it) }

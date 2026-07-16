@@ -62,7 +62,7 @@ class PdfExporter {
     private fun maxDimensionFor(quality: ExportQuality): Int = when (quality) {
         ExportQuality.LOW -> 1000
         ExportQuality.MEDIUM -> 1600
-        ExportQuality.HIGH -> 2400
+        ExportQuality.HIGH -> 3200
     }
 
     /** Размер страницы в пунктах (1/72 дюйма). A4 = 595 x 842 pt. */
