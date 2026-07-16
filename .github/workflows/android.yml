@@ -67,6 +67,22 @@ jobs:
           ls -la "$APK"
           sha256sum "$APK"
 
+      - name: Publish build summary as commit comment
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK=composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          SUMMARY=$(printf 'CI SUCCESS (run %s)\nAPK: %s\nSHA-256: %s\nSize: %s bytes\n\nSteps:\n%s' \
+            "${{ github.run_id }}" "$APK" "$(sha256sum "$APK" | cut -d' ' -f1)" "$(stat -c%s "$APK")" \
+            "$(grep -hE 'BUILD SUCCESSFUL|actionable task' step-*.log | head -20)")
+          printf '%s' "$SUMMARY" > body.txt
+          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
+          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
+            -d @payload.json > /dev/null
+
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
