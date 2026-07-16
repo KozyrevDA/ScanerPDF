@@ -154,7 +154,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SUMMARY=$(grep -hE "Tests on|BUILD SUCCESSFUL" step-connected.log | head -10)
+          SUMMARY=$(grep -hE "Tests on|tests|BUILD SUCCESSFUL" step-connected.log | head -12 || true)
           printf 'INSTRUMENTED TESTS PASSED on GMS-free emulator (run %s):\n' "${{ github.run_id }}" > body.txt
           printf '```\n%s\n```\n' "$SUMMARY" >> body.txt
           python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
