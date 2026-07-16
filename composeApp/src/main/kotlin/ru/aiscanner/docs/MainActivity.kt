@@ -6,25 +6,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.navigation.compose.rememberNavController
-import org.koin.androidx.compose.koinViewModel
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
+import org.koin.android.ext.android.inject
+import org.koin.androidx.compose.koinViewModel
 import ru.aiscanner.docs.data.analytics.Analytics
+import ru.aiscanner.docs.data.analytics.AnalyticsEvent
 import ru.aiscanner.docs.data.billing.BillingDeeplinkHandler
 import ru.aiscanner.docs.domain.repository.SubscriptionRepository
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.launch
-import ru.aiscanner.docs.data.analytics.Analytics
-import ru.aiscanner.docs.data.billing.BillingDeeplinkHandler
-import ru.aiscanner.docs.domain.repository.SubscriptionRepositoryEvent
 import ru.aiscanner.docs.presentation.navigation.AppNavGraph
 import ru.aiscanner.docs.presentation.settings.SettingsViewModel
 import ru.aiscanner.docs.presentation.theme.ScannerTheme
-import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
 
