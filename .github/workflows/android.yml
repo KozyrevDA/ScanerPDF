@@ -131,7 +131,9 @@ jobs:
           target: default
           disable-animations: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
-          script: ./gradlew :composeApp:connectedDebugAndroidTest 2>&1 | tee step-connected.log
+          script: |
+            set -o pipefail
+            ./gradlew :composeApp:connectedDebugAndroidTest 2>&1 | tee step-connected.log
 
       - name: Publish failure log as commit comment
         if: failure()

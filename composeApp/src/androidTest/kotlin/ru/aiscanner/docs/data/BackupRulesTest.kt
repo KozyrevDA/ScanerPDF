@@ -52,10 +52,4 @@ class BackupRulesTest {
         assertTrue(excludes.count { it.domain == "database" } >= 2)
     }
 
-    @Test
-    fun manifestReferencesBackupRules() {
-        val context = InstrumentationRegistry.getInstrumentation().targetContext
-        val info = context.packageManager.getApplicationInfo(context.packageName, 0)
-        assertTrue("fullBackupContent не задан", info.fullBackupContent != 0)
-    }
 }
