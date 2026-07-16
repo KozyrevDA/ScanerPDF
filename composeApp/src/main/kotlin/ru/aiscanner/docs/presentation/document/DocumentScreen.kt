@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -55,7 +56,11 @@ import ru.aiscanner.docs.domain.model.ExportQuality
 import ru.aiscanner.docs.domain.model.PdfExportOptions
 import ru.aiscanner.docs.domain.model.PdfMargins
 import ru.aiscanner.docs.domain.model.PdfPageSize
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import ru.aiscanner.docs.presentation.common.ConfirmDialog
+import ru.aiscanner.docs.presentation.common.DragDropState
+import ru.aiscanner.docs.presentation.common.dragContainer
 import ru.aiscanner.docs.presentation.common.LoadingState
 import ru.aiscanner.docs.presentation.common.toMessage
 import ru.aiscanner.docs.presentation.navigation.Routes
@@ -153,13 +158,33 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
                 stringResource(R.string.error_document_not_found),
                 Modifier.padding(padding).padding(16.dp),
             )
-            else -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(padding),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
-            ) {
-                items(document.pages.sortedBy { it.position }, key = { it.id }) { page ->
-                    Card(Modifier.fillMaxWidth()) {
+            else -> {
+                val listState = rememberLazyListState()
+                val dragDropState = remember(listState) {
+                    DragDropState(listState) { from, to -> viewModel.onMovePageByIndex(from, to) }
+                }
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                        .dragContainer(dragDropState),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                ) {
+                    itemsIndexed(
+                        document.pages.sortedBy { it.position },
+                        key = { _, page -> page.id },
+                    ) { index, page ->
+                        val isDragging = dragDropState.draggingItemIndex == index
+                        Card(
+                            Modifier
+                                .fillMaxWidth()
+                                .zIndex(if (isDragging) 1f else 0f)
+                                .graphicsLayer {
+                                    translationY = if (isDragging) dragDropState.draggingItemOffset else 0f
+                                },
+                        ) {
                         Row(
                             Modifier.padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -205,6 +230,7 @@ fun DocumentScreen(navController: NavHostController, viewModel: DocumentViewMode
                 }
             }
         }
+    }
     }
 
     deletePageId?.let { pageId ->

@@ -121,6 +121,16 @@ class DocumentViewModel(
         viewModelScope.launch { _effects.send(DocumentUiEffect.OpenOcr(documentId)) }
     }
 
+    /** Перестановка перетаскиванием: перемещает страницу с позиции from на to. */
+    fun onMovePageByIndex(fromIndex: Int, toIndex: Int) {
+        val pages = state.value.document?.pages?.sortedBy { it.position } ?: return
+        if (fromIndex !in pages.indices || toIndex !in pages.indices || fromIndex == toIndex) return
+        val ids = pages.map { it.id }.toMutableList()
+        val moved = ids.removeAt(fromIndex)
+        ids.add(toIndex, moved)
+        viewModelScope.launch { reorderPages(documentId, ids) }
+    }
+
     fun onImportFromGallery(uriString: String) {
         viewModelScope.launch {
             when (val result = importImage(documentId, uriString, "")) {
