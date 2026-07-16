@@ -2,6 +2,7 @@ package ru.aiscanner.docs.presentation
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -87,13 +88,9 @@ class HomeViewModelTest {
         viewModel.onScanClick()
         dispatcher.scheduler.advanceUntilIdle()
 
-        val effect = viewModel.effects
-        val collected = mutableListOf<HomeUiEffect>()
-        val job = launch { effect.collect { collected.add(it); cancel() } }
-        dispatcher.scheduler.advanceUntilIdle()
-        job.cancel()
+        val effect = viewModel.effects.first()
 
-        assertTrue(collected.first() is HomeUiEffect.OpenCamera)
+        assertTrue(effect is HomeUiEffect.OpenCamera)
         assertTrue(analyticsEvents.contains(AnalyticsEvent.SCAN_STARTED))
     }
 
