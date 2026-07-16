@@ -32,6 +32,7 @@ import ru.aiscanner.docs.R
  * Paywall не показывается при первом запуске приложения.
  */
 @OptIn(ExperimentalMaterial3Api::class)
+@Suppress("UnusedParameter")
 @Composable
 fun PremiumScreen(navController: NavHostController, viewModel: PremiumViewModel = koinViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()

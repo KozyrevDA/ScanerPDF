@@ -24,7 +24,7 @@ object BitmapLoader {
             try {
                 val options = BitmapFactory.Options().apply { inSampleSize = sampleSize }
                 val decoded = BitmapFactory.decodeFile(path, options)
-                    ?: throw IllegalStateException("Не удалось декодировать изображение")
+                    ?: error("Не удалось декодировать изображение")
                 return applyExifOrientation(path, decoded)
             } catch (e: OutOfMemoryError) {
                 attempts++

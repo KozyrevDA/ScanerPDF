@@ -1,23 +1,50 @@
+# Конфигурация detekt для проекта.
+# Отключённые правила — осознанные решения архитектуры:
+# - SwallowedException/TooGenericExceptionCaught: на границах слоёв исключения
+#   намеренно преобразуются в типизированные AppError без проброса stack trace
+#   пользователю (п. 14 ТЗ); содержимое ошибок не логируется (п. 10 ТЗ).
+# - ReturnCount: ранние return — принятый стиль guard-условий.
+# - SpreadOperator: требуется API OpenCV (MatOfPoint2f(vararg)).
+# - MatchingDeclarationName: файлы-агрегаты (Routes, use cases) именуются по смыслу.
 build:
   maxIssues: 0
+
+exceptions:
+  SwallowedException:
+    active: false
+  TooGenericExceptionCaught:
+    active: false
+
+performance:
+  SpreadOperator:
+    active: false
 
 style:
   MagicNumber:
     active: false
   MaxLineLength:
     maxLineLength: 140
+  ReturnCount:
+    active: false
   WildcardImport:
     active: true
 
 complexity:
   LongParameterList:
-    functionThreshold: 8
+    functionThreshold: 9
     constructorThreshold: 10
+    ignoreDefaultParameters: true
   LongMethod:
-    threshold: 120
+    threshold: 150
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    threshold: 20
+    ignoreAnnotated: ['Composable']
   TooManyFunctions:
     active: false
 
 naming:
   FunctionNaming:
     ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    active: false

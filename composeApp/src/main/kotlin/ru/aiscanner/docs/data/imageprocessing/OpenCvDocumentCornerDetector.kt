@@ -62,34 +62,12 @@ class OpenCvDocumentCornerDetector(
             )
             hierarchy.release()
 
-            val imageArea = (rgba.width() * rgba.height()).toFloat()
-            var best: CropCorners? = null
-            var bestScore = 0f
-            var bestFraction = 0f
-
-            contours.forEach { contour ->
-                val candidate = toQuadCandidate(contour, rgba.width(), rgba.height())
-                if (candidate != null) {
-                    val fraction = Imgproc.contourArea(contour).toFloat() / imageArea
-                    if (QuadGeometry.isPlausibleDocument(candidate, fraction)) {
-                        val score = QuadGeometry.scoreCandidate(candidate, fraction)
-                        if (score > bestScore) {
-                            bestScore = score
-                            best = candidate
-                            bestFraction = fraction
-                        }
-                    }
-                }
-                contour.release()
-            }
-
-            val found = best
-            return if (found != null) {
+            val best = selectBestCandidate(contours, rgba.width(), rgba.height())
+            return if (best != null) {
                 CornerDetectionResult(
-                    corners = found,
+                    corners = best.corners,
                     detected = true,
-                    confidence = (bestScore / bestFraction.coerceAtLeast(0.01f))
-                        .coerceIn(0f, 1f) * bestFraction.coerceIn(0f, 1f),
+                    confidence = best.score.coerceIn(0f, 1f),
                 )
             } else {
                 CornerDetectionResult(
@@ -103,6 +81,24 @@ class OpenCvDocumentCornerDetector(
             gray.release()
             edges.release()
         }
+    }
+
+    private data class Candidate(val corners: CropCorners, val score: Float)
+
+    /** Отбор лучшего достоверного четырёхугольника среди контуров. */
+    private fun selectBestCandidate(contours: List<MatOfPoint>, width: Int, height: Int): Candidate? {
+        val imageArea = (width * height).toFloat()
+        var best: Candidate? = null
+        contours.forEach { contour ->
+            val candidate = toQuadCandidate(contour, width, height)
+            val fraction = Imgproc.contourArea(contour).toFloat() / imageArea
+            contour.release()
+            if (candidate != null && QuadGeometry.isPlausibleDocument(candidate, fraction)) {
+                val score = QuadGeometry.scoreCandidate(candidate, fraction)
+                if (score > (best?.score ?: 0f)) best = Candidate(candidate, score)
+            }
+        }
+        return best
     }
 
     /** Аппроксимирует контур; возвращает выпуклый четырёхугольник или null. */
