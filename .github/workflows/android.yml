@@ -54,11 +54,7 @@ jobs:
         run: |
           LOG=$(grep -hE "^e: |error:|FAILED|Caused by|What went wrong|> Task .* FAILED" step-*.log 2>/dev/null | head -c 50000 || true)
           if [ -z "$LOG" ]; then LOG=$(cat step-*.log 2>/dev/null | tail -c 50000); fi
-          printf 'CI failure (run %s):
-```
-%s
-```
-' "${{ github.run_id }}" "$LOG" > body.txt
+          printf 'CI failure (run %s):\n```\n%s\n```\n' "${{ github.run_id }}" "$LOG" > body.txt
           python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
           curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
