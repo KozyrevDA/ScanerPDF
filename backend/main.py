@@ -84,10 +84,10 @@ PROMPTS = {
 
 
 async def call_model(kind: str, payload: TextRequest) -> dict:
-    if not ANTHROPIC_API_KEY:
-        raise HTTPException(status_code=503, detail="provider key is not configured")
     if len(payload.text) > MAX_TEXT_CHARS:
         raise HTTPException(status_code=413, detail="text too large")
+    if not ANTHROPIC_API_KEY:
+        raise HTTPException(status_code=503, detail="provider key is not configured")
 
     system = PROMPTS[kind].replace("{language}", payload.language)
     body = {
