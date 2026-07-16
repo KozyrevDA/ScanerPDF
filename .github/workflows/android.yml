@@ -158,6 +158,9 @@ jobs:
           XML=$(grep -rhoE '<testsuite[^>]*' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/.*name="([^"]*)".*tests="([0-9]+)"[^>]*failures="([0-9]+)"[^>]*errors="([0-9]+)".*/\1: tests=\2 failures=\3 errors=\4/' || true)
           CASES=$(grep -rhoE '<testcase name="[^"]+" classname="[^"]+"' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/<testcase name="([^"]+)" classname="[^"]*\.([A-Za-z]+)"/\2.\1/' | sort || true)
           SUMMARY="$SUMMARY"$'\n'"$XML"$'\n'"--- test cases ---"$'\n'"$CASES"
+          FILES=$(find composeApp/build/outputs -name "*.xml" -path "*androidTest*" 2>/dev/null | head -5 || true)
+          TAIL=$(tail -c 6000 step-connected.log 2>/dev/null || true)
+          SUMMARY="$SUMMARY"$'\n'"--- xml files: $FILES"$'\n'"--- log tail ---"$'\n'"$TAIL"
           printf 'INSTRUMENTED TESTS PASSED on GMS-free emulator (run %s):\n' "${{ github.run_id }}" > body.txt
           printf '```\n%s\n```\n' "$SUMMARY" >> body.txt
           python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
