@@ -47,6 +47,20 @@ android {
         )
     }
 
+    signingConfigs {
+        // Keystore и пароли поступают ТОЛЬКО из окружения (GitHub Secrets);
+        // в репозитории секретов нет. Без KEYSTORE_FILE собирается unsigned release.
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_FILE")
+            if (!keystorePath.isNullOrBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Mock AI разрешён только в debug и только явным флагом
@@ -61,6 +75,16 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            signingConfig = if (System.getenv("KEYSTORE_FILE").isNullOrBlank()) {
+                null
+            } else {
+                signingConfigs.getByName("release")
+            }
+            // Оптимизация размера: в release только реальные ABI устройств RuStore.
+            // AAB дополнительно раздаёт per-device (abi/density/language splits).
+            ndk {
+                abiFilters += listOf("arm64-v8a", "armeabi-v7a")
+            }
         }
     }
     compileOptions {
