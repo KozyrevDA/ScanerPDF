@@ -8,9 +8,15 @@ Android-приложение для сканирования бумажных д
 
 ## Сборка
 
-Требуется JDK 17 и Android SDK (compileSdk 35). CI: `.github/workflows/android.yml`
-выполняет `clean` → `test` → `detekt` → `assembleDebug` и публикует debug APK
-как artifact.
+Требуется JDK 17 и Android SDK (compileSdk 35). CI (`.github/workflows/android.yml`),
+три джоба:
+- `build`: `clean` → `test` → `detekt` → `assembleDebug`, debug APK артефактом;
+- `instrumented-tests`: `connectedDebugAndroidTest` на эмуляторе AOSP (api 30,
+  без Google Play Services), логи и XML/HTML-отчёты артефактом
+  `instrumented-test-logs`;
+- `release-build`: `assembleRelease` + `bundleRelease` (R8, shrinkResources,
+  ABI arm64-v8a/armeabi-v7a); подпись — из GitHub Secrets (`KEYSTORE_BASE64`,
+  `KEYSTORE_PASSWORD`, `KEY_ALIAS`, `KEY_PASSWORD`), без них артефакты unsigned.
 
 ```bash
 ./gradlew clean

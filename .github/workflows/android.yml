@@ -121,8 +121,9 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # target: default = AOSP-образ БЕЗ Google Play Services —
-      # инструментальные тесты подтверждают работу без GMS
+      # target: default = AOSP-образ БЕЗ Google Play Services.
+      # Запуск через bash -o pipefail: emulator-runner использует /usr/bin/sh,
+      # который не поддерживает pipefail; иначе tee скрывает код возврата Gradle.
       - name: Run instrumented tests on GMS-free emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -132,52 +133,56 @@ jobs:
           disable-animations: true
           emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            set -o pipefail
-            ./gradlew :composeApp:connectedDebugAndroidTest 2>&1 | tee step-connected.log
+            bash -o pipefail -c './gradlew :composeApp:connectedDebugAndroidTest --stacktrace 2>&1 | tee step-connected.log'
 
-      - name: Publish failure log as commit comment
-        if: failure()
+      - name: Instrumented test summary
+        if: always()
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
         run: |
-          LOG=$(grep -hE "^e: |error:|FAILED|Caused by|What went wrong|Tests on|> Task .* FAILED" step-*.log 2>/dev/null | head -c 40000 || true)
-          TAIL=$(cat step-*.log 2>/dev/null | tail -c 20000); LOG="$LOG"$'\n'"--- tail ---"$'\n'"$TAIL"
-          printf 'INSTRUMENTED FAILURE (run %s):\n' "${{ github.run_id }}" > body.txt
-          printf '```\n%s\n```\n' "$LOG" >> body.txt
+          set +e
+          XML=$(grep -rhoE '<testsuite[^>]*' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/.*name="([^"]*)".*tests="([0-9]+)"[^>]*failures="([0-9]+)"[^>]*errors="([0-9]+)".*/\1: tests=\2 failures=\3 errors=\4/')
+          CASES=$(grep -rhoE '<testcase name="[^"]+" classname="[^"]+"' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/<testcase name="([^"]+)" classname="[^"]*\.([A-Za-z]+)"/\2.\1/' | sort)
+          ERRORS=$(grep -hE "^e: |> Task .* FAILED|FAILURE:|What went wrong" step-connected.log 2>/dev/null | head -40)
+          TAIL=$(tail -c 4000 step-connected.log 2>/dev/null)
+          {
+            echo "## Instrumented tests: $JOB_STATUS"
+            echo '```'
+            echo "$XML"
+            echo "--- cases ---"
+            echo "$CASES"
+            if [ "$JOB_STATUS" != "success" ]; then
+              echo "--- errors ---"; echo "$ERRORS"; echo "--- tail ---"; echo "$TAIL"
+            fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          {
+            printf 'INSTRUMENTED %s (run %s)\n' "$JOB_STATUS" "${{ github.run_id }}"
+            printf '```\n%s\n--- cases ---\n%s\n' "$XML" "$CASES"
+            if [ "$JOB_STATUS" != "success" ]; then
+              printf -- '--- errors ---\n%s\n--- tail ---\n%s\n' "$ERRORS" "$TAIL"
+            fi
+            printf '```\n'
+          } > body.txt
           python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
           curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
             -d @payload.json > /dev/null
+          exit 0
 
-      - name: Publish success summary
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          SUMMARY=$(grep -hE "Tests on|BUILD SUCCESSFUL" step-connected.log | head -6 || true)
-          XML=$(grep -rhoE '<testsuite[^>]*' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/.*name="([^"]*)".*tests="([0-9]+)"[^>]*failures="([0-9]+)"[^>]*errors="([0-9]+)".*/\1: tests=\2 failures=\3 errors=\4/' || true)
-          CASES=$(grep -rhoE '<testcase name="[^"]+" classname="[^"]+"' composeApp/build/outputs/androidTest-results/connected 2>/dev/null | sed -E 's/<testcase name="([^"]+)" classname="[^"]*\.([A-Za-z]+)"/\2.\1/' | sort || true)
-          SUMMARY="$SUMMARY"$'\n'"$XML"$'\n'"--- test cases ---"$'\n'"$CASES"
-          FILES=$(find composeApp/build/outputs -name "*.xml" -path "*androidTest*" 2>/dev/null | head -5 || true)
-          TAIL=$(tail -c 6000 step-connected.log 2>/dev/null || true)
-          SUMMARY="$SUMMARY"$'\n'"--- xml files: $FILES"$'\n'"--- log tail ---"$'\n'"$TAIL"
-          printf 'INSTRUMENTED TESTS PASSED on GMS-free emulator (run %s):\n' "${{ github.run_id }}" > body.txt
-          printf '```\n%s\n```\n' "$SUMMARY" >> body.txt
-          python3 -c "import json;print(json.dumps({'body': open('body.txt').read()}))" > payload.json
-          curl -s -X POST -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/commits/${{ github.sha }}/comments" \
-            -d @payload.json > /dev/null
-
-      - name: Upload instrumented test reports
+      - name: Upload instrumented logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: androidTest-reports
-          path: composeApp/build/reports/androidTests/
-          if-no-files-found: ignore
+          name: instrumented-test-logs
+          path: |
+            step-connected.log
+            composeApp/build/outputs/androidTest-results/
+            composeApp/build/reports/androidTests/
+          if-no-files-found: warn
 
   release-build:
     runs-on: ubuntu-latest
